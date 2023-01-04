@@ -3,7 +3,7 @@ import discord
 from discord.ext import commands
 
 from youtube_dl import YoutubeDL
-import tasks
+#import tasks
 class music_cog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
