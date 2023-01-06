@@ -1,7 +1,6 @@
 # El Chapo Music Bot
-[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)
+[![MIT License](https://img.shields.io/badge/License-MIT-green.svg)](https://choosealicense.com/licenses/mit/)  [![ElChapo Version](https://img.shields.io/badge/version-1.0.0--SNAPSHOT-brightgreen)](https://github.com/opdelta/elchapo/releases/)
 
-[![GitHub release](https://img.shields.io/github/release/opdelta/elchapo?include_prereleases=&sort=semver&color=blue)](https://github.com/opdelta/elchapo/releases/)
 ElChapo is a private Discord music bot that allows a small Discord community to 
 listen to music together (personal uses only). It is a simple bot programmed in Python3. 
 
