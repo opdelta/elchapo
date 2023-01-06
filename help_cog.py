@@ -40,6 +40,7 @@ class help_cog(commands.Cog):
     @commands.command(name='help', help='Displays this message')
     async def help(self, ctx):
         await ctx.send(self.help_message)
+        print("Help command executed by " + str(ctx.author) + " in " + str(ctx.channel) + " at " + str(ctx.message.created_at) + " UTC")
 
     async def send_to_all(self, message):
         for channel in self.text_channel_text:

@@ -11,4 +11,5 @@ bot.remove_command("help")
 bot.add_cog(help_cog(bot))
 bot.add_cog(music_cog(bot))
 
+print("Bot is ready")
 bot.run(os.getenv('DISCORD_TOKEN'))
