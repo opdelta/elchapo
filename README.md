@@ -12,6 +12,7 @@ add music to queue, etc.
 ## Author(s)
 
 - [opdelta](https://www.github.com/opdelta)
+- [gmen311](https://github.com/gmen311)
 
 
 ## Installation and deployment
