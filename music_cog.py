@@ -7,7 +7,7 @@ from youtube_dl import YoutubeDL
 
 class music_cog(commands.Cog):
     def __init__(self, bot):
-        self.list_of_denied_users = [171253608380235776, 947566204309082112]
+        self.list_of_denied_users = [947566204309082112]
         self.list_of_denied_messages = ["Vous avez bien rejoint la boîte vocale de El Chapo. Veuillez laisser un message après le beep. *beep*",
                            "Le numéro composé n'est pas en service. Veuillez raccrocher et composer de nouveau. C'était un message enregistré.",
                            "Hello? Bye.", "You? Hmm... Maybe later.", "Password?", "Aaaanndd who are you exactly?", "https://shutupandtakemymoney.com/wp-content/uploads/2020/07/barack-obama-the-audacity-of-this-bitch-book-meme.jpg",
@@ -16,9 +16,16 @@ class music_cog(commands.Cog):
                            "Did you ask your momma first?", "How about YOU sing?", "Hello? I can't hear you, I'm deaf.", "Sorry... I am too stupid to fulfill that request.",
                            "Go on Spotify. Stoopid.", "Beep boop, I'm a bot.\nBeep boop, you're a cunt.", "I'm calling the police.", "I thought I was trash?",
                            "It's a bird! No, it's a plane! No, it's a denied request.", "01001110 01101111", "If you can read this, clap your hands.", "brb",
-                           "Mmmmhh... No.", "Code it yourself.", "Beep boop, I'm a bot.\nBeep boop, suck a cock."]
+                           "Mmmmhh... No.", "Code it yourself.", "Beep boop, I'm a bot.\nBeep boop, suck a cock.", "Fuck off.", "Lezduit!", "Beep boop, I'm a bot.\nBeep boop, you're a slut.",
+                           "Beep boop, I'm a bot.\nBeep boop, you're a thot.", "You've won... But at what cost?", "Processing request, please wait...", "Results came back...\nYou're a bitch.",
+                           "Brb, let me go grab the milk.", "Fatal error occurred. Please note the following error code for future reference: \"Y0U-C4N-FUCK-0FF\".", "-500 social credit points.",
+                           "https://cdnmetv.metv.com/z50xp-1619719725-16226-list_items-no.jpg", "http://images3.memedroid.com/images/UPLOADED58/5d426af598af9.jpeg","https://i.kym-cdn.com/photos/images/facebook/002/321/034/3b0.jpg",
+                           "https://media.tenor.com/g-P8diB7FYgAAAAd/dont-care-didnt-ask-cope.gif","https://media.tenor.com/bT5vZjNhyt4AAAAC/sir-yes-sir-oorah-oorah.gif","https://media.tenor.com/hEgF0nc2rckAAAAC/uzui-better.gif",
+                           "In order to use this bot, you will need to agree to the terms and conditions found at: https://discord.com/developers/applications", "https://open.spotify.com/", "https://www.youtube.com/premium",
+                           "http://www.script-o-rama.com/movie_scripts/a1/bee-movie-script-transcript-seinfeld.html", "https://www.youtube.com/watch?v=dQw4w9WgXcQ", "https://www.linkedin.com/pulse/respect-software-engineers-rapha%C3%ABl-laffitte/"
+                           ]
         self.bot = bot
-    
+        
         #all the music related stuff
         self.is_playing = False
         self.is_paused = False
@@ -100,7 +107,6 @@ class music_cog(commands.Cog):
             except Exception as e:
                 await ctx.send(f"An error occurred while moving to the voice channel: {e}")
                 print(f"An error occurred while moving to the voice channel: {e}")
-                await ctx.add_reaction("❌")
                 self.is_playing = False
                 return
     
@@ -110,9 +116,9 @@ class music_cog(commands.Cog):
         except Exception as e:
             await ctx.send(f"An error occurred during playback: {e}")
             print(f"An error occurred during playback: {e}")
-            await ctx.add_reaction("❌")
             await self.vc.disconnect()
             self.is_playing = False
+            
 
     @commands.command(name="play", aliases=["p","playing"], help="Plays a selected song from youtube")
     async def play(self, ctx, *args):
@@ -123,52 +129,58 @@ class music_cog(commands.Cog):
             return
         query = " ".join(args)
 
-        # Validate input
+        #validate input
         if not query:
-            await ctx.send("Please provide a search query.")
-            # React with X
+            await ctx.send("Please enter a search term.")
             await ctx.message.add_reaction("❌")
             return
-
+        
         voice_channel = ctx.author.voice.channel
         if voice_channel is None:
-            #you need to be connected so that the bot knows where to go
-            await ctx.send("Connect to a voice channel!")
+            await ctx.send("You are not connected to a voice channel.")
             await ctx.message.add_reaction("❌")
             return
 
-        # Search YouTube
-        try:
-            song = self.search_yt(query)
-        except Exception as e:
-            await ctx.send(f"An error occurred while searching YouTube: {e}")
-            await ctx.message.add_reaction("❌")
-            return
-
+        # Check if the query is a url
+        if "youtube.com" in query or "youtu.be" in query:
+            try:
+                # Download the song from the url
+                with YoutubeDL(self.YDL_OPTIONS) as ydl:
+                    info = ydl.extract_info(query, download=False)
+                song = {'source': info['formats'][0]['url'], 'title': info['title']}
+                
+            except Exception as e:
+                await ctx.send(f"An error occurred while downloading the song: {e}")
+                print(f"An error occurred while downloading the song: {e}")
+                await ctx.message.add_reaction("❌")
+                return
+        else:
+            # search for the song
+            try:
+                song = self.search_yt(query)
+            except Exception as e:
+                await ctx.send(f"An error occurred while searching for the song: {e}")
+                print(f"An error occurred while searching for the song: {e}")
+                await ctx.message.add_reaction("❌")
+                return
         if type(song) == type(True):
-            await ctx.send("Could not download the song. Incorrect format try another keyword. This could be due to playlist or a livestream format.")
+            await ctx.send("Could not download the song. Incorrect format. Try another keyword or link. This can happen if you try to play a playlist, a livestream, an age-restricted video, or an unavailable video.")
             await ctx.message.add_reaction("❌")
             return
         else:
-            await ctx.send("Song added to the queue")
-            self.music_queue.append([song, voice_channel])
+            await ctx.send("Adding song to queue: " + song['title'])
             await ctx.message.add_reaction("✅")
-
+            self.music_queue.append([song, voice_channel])
             if self.is_paused:
+                self.is_paused = False
                 self.vc.resume()
-                return
-            elif not self.is_playing:
-                # Play music
+            if not self.is_playing:
                 try:
                     await self.play_music(ctx)
-                    await ctx.message.add_reaction("▶️")
                 except Exception as e:
-                    await ctx.send(f"An error occurred during playback: {e}")
-                    print(f"An error occurred during playback: {e}")
-                    await ctx.message.add_reaction("❌")
-                    self.is_playing = False
-                    self.vc = None
-                    self.music_queue = []
+                    await ctx.send(f"An error occurred while playing the song: {e}")
+                    print(f"An error occurred while playing the song: {e}")
+                    self.reset()
 
     @commands.command(name="pause", help="Pauses the current song being played")
     async def pause(self, ctx, *args):
@@ -177,18 +189,13 @@ class music_cog(commands.Cog):
             random_message = random.choice(self.list_of_denied_messages)
             await ctx.send(random_message)
             return
+
         if self.is_playing:
-            self.is_playing = False
+            self.is_playing = True
             self.is_paused = True
             self.vc.pause()
             await ctx.send("Paused the song.")
             await ctx.message.add_reaction("⏸️")
-        elif self.is_paused:
-            self.is_paused = False
-            self.is_playing = True
-            self.vc.resume()
-            await ctx.send("Resumed the song.")
-            await ctx.message.add_reaction("▶️")
 
     @commands.command(name = "resume", aliases=["r"], help="Resumes playing with the discord bot")
     async def resume(self, ctx, *args):
@@ -241,7 +248,10 @@ class music_cog(commands.Cog):
             random_message = random.choice(self.list_of_denied_messages)
             await ctx.send(random_message)
             return     
-        self.vc.stop()
+        try:
+            self.vc.stop()
+        except:
+            pass
         await ctx.send("Cleared the queue")
         await ctx.message.add_reaction("🗑️")
         self.reset()
@@ -346,5 +356,4 @@ class music_cog(commands.Cog):
         self.music_queue = []
         self.vc = None
         self.current_song = None
-    
         
