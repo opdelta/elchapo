@@ -7,6 +7,7 @@ from youtube_dl import YoutubeDL
 
 class music_cog(commands.Cog):
     def __init__(self, bot):
+        self.list_of_admins = [127947460462116864]
         self.list_of_denied_users = [947566204309082112]
         self.list_of_denied_messages = ["Vous avez bien rejoint la boîte vocale de El Chapo. Veuillez laisser un message après le beep. *beep*",
                            "Le numéro composé n'est pas en service. Veuillez raccrocher et composer de nouveau. C'était un message enregistré.",
@@ -356,4 +357,54 @@ class music_cog(commands.Cog):
         self.music_queue = []
         self.vc = None
         self.current_song = None
-        
+
+    #############################
+    #   Admin commands          #
+    #############################
+
+    @commands.command(name="ban", help="Deny a user from using the bot")
+    async def ban(self, ctx, user: discord.User):
+        print("Ban command triggered by: " + str(ctx.author))
+        if ctx.message.author.id in self.list_of_admins:
+            self.list_of_denied_users.append(user.id)
+            await ctx.send("Banned " + str(user) + " from using the bot.")
+            await ctx.message.add_reaction("👍")
+        else:
+            await ctx.send("You are not allowed to use this command.")
+            await ctx.message.add_reaction("❌")
+
+    @commands.command(name="unban", help="Allow a user to use the bot")
+    async def unban(self, ctx, user: discord.User):
+        print("Unban command triggered by: " + str(ctx.author))
+        if ctx.message.author.id in self.list_of_admins:
+            try:
+                self.list_of_denied_users.remove(user.id)
+                await ctx.send("Unbanned " + str(user) + " from using the bot.")
+                await ctx.message.add_reaction("👍")
+            except:
+                await ctx.send("User is not banned.")
+                await ctx.message.add_reaction("❌")
+        else:
+            await ctx.send("You are not allowed to use this command.")
+            await ctx.message.add_reaction("❌")
+    @commands.command(name="listbanned", help="List all banned users")
+    async def listbanned(self, ctx):
+        print("Listbanned command triggered by: " + str(ctx.author))
+        if ctx.message.author.id in self.list_of_admins:
+            await ctx.send("Banned users: " + str(self.list_of_denied_users))
+            await ctx.message.add_reaction("👍")
+        else:
+            await ctx.send("You are not allowed to use this command.")
+            await ctx.message.add_reaction("❌")
+    
+    @commands.command(name="say", help="Make the bot say something")
+    async def say(self, ctx, *, message):
+        print("Say command triggered by: " + str(ctx.author))
+        if ctx.message.author.id in self.list_of_admins:
+            await ctx.send(message)
+            # delete the command message
+            await ctx.message.delete()
+        else:
+            await ctx.send("You are not allowed to use this command.")
+            await ctx.message.add_reaction("❌")
+    
