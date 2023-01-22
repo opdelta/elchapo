@@ -15,14 +15,14 @@ class help_cog(commands.Cog):
         #resume - Resumes the current song
         #stop - Stops the current song
         #skip - Skips the current song
-        #remove <number> - Removes a song from the queue
         #queue - Displays the current queue
         #clear - Clears the current queue
-        #shuffle - Shuffles the current queue
         #leave - Leaves the voice channel
-        #move <number> <number> - Moves a song in the queue
+        #reset - Resets the bot
         #ping - Pong!
         #license - Displays the license
+
+        Should you encounter any bugs, please report them to opdelta#1665 on Discord with as much information as possible about the bug.
         ```
         """
         self.text_channel_text = []
