@@ -197,6 +197,9 @@ class music_cog(commands.Cog):
             self.vc.pause()
             await ctx.send("Paused the song.")
             await ctx.message.add_reaction("⏸️")
+        else:
+            await ctx.send("Nothing is playing.")
+            await ctx.message.add_reaction("❌")
 
     @commands.command(name = "resume", aliases=["r"], help="Resumes playing with the discord bot")
     async def resume(self, ctx, *args):
@@ -211,6 +214,9 @@ class music_cog(commands.Cog):
             self.vc.resume()
             await ctx.send("Resumed the song.")
             await ctx.message.add_reaction("▶️")
+        else:
+            await ctx.send("Nothing is paused.")
+            await ctx.message.add_reaction("❌")
 
     @commands.command(name="skip", aliases=["s"], help="Skips the current song being played")
     async def skip(self, ctx):
@@ -347,16 +353,39 @@ class music_cog(commands.Cog):
         
 
     def reset(self):
-        # disconnect if connected
-        if self.vc != None and self.vc:
-            self.vc.stop()
-            self.disconnect()
+        print("Resetting variables")
+        # disconnect
+        self.vc.stop()
+        self.vc.disconnect()
         # reset the variables
         self.is_playing = False
         self.is_paused = False
         self.music_queue = []
         self.vc = None
         self.current_song = None
+
+    @commands.command(name="reset", help="Resets the bot")
+    async def reset(self, ctx):
+        print("Reset command triggered by: " + str(ctx.author))
+        if ctx.message.author.id in self.list_of_denied_users:
+            random_message = random.choice(self.list_of_denied_messages)
+            await ctx.send(random_message)
+            return
+        try:
+            # disconnect
+            self.vc.stop()
+            await self.vc.disconnect()
+            # reset the variables
+            self.is_playing = False
+            self.is_paused = False
+            self.music_queue = []
+            self.vc = None
+            self.current_song = None
+            await ctx.send("I should be reset now. If there are still problems, try doing #leave, #clear and #stop. If that doesn't work, contact: <@!127947460462116864> with information about what happened.")
+            await ctx.message.add_reaction("🔄")
+        except:
+            await ctx.send("I was unable to fully reset. Please contact: <@!127947460462116864> with information about what happened. Meanwhile, try doing #leave, #clear and #stop.")
+            await ctx.message.add_reaction("❌")
 
     #############################
     #   Admin commands          #
@@ -392,7 +421,7 @@ class music_cog(commands.Cog):
         print("Listbanned command triggered by: " + str(ctx.author))
         if ctx.message.author.id in self.list_of_admins:
             await ctx.send("Banned users: " + str(self.list_of_denied_users))
-            await ctx.message.add_reaction("👍")
+            await ctx.message.add_reaction("��")
         else:
             await ctx.send("You are not allowed to use this command.")
             await ctx.message.add_reaction("❌")
@@ -408,3 +437,4 @@ class music_cog(commands.Cog):
             await ctx.send("You are not allowed to use this command.")
             await ctx.message.add_reaction("❌")
     
+
