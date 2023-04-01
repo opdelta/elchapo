@@ -2,7 +2,7 @@ from ast import alias
 import discord
 from discord.ext import commands
 import random
-from youtube_dl import YoutubeDL
+from yt_dlp import YoutubeDL
 #import tasks
 
 class music_cog(commands.Cog):
@@ -34,7 +34,14 @@ class music_cog(commands.Cog):
         # 2d array containing [song, channel]
         self.music_queue = []
         self.current_song = None
-        self.YDL_OPTIONS = {'format': 'bestaudio', 'noplaylist':'True'}
+        self.YDL_OPTIONS = {
+            'format': 'bestaudio/best',
+            'postprocessors': [{
+                'key': 'FFmpegExtractAudio',
+                'preferredcodec': 'mp3',
+                'preferredquality': '192',
+            }],
+        }
         self.FFMPEG_OPTIONS = {'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5', 'options': '-vn'}
 
         self.vc = None
@@ -51,7 +58,7 @@ class music_cog(commands.Cog):
             except Exception: 
                 return False
 
-        return {'source': info['formats'][0]['url'], 'title': info['title']}
+        return {'source': info['url'], 'title': info['title']}
 
     def play_next(self):
         if len(self.music_queue) > 0:
@@ -83,10 +90,10 @@ class music_cog(commands.Cog):
         self.is_playing = True
         self.current_song = self.music_queue[0][0]['title']
         m_url = self.music_queue[0][0]['source']
+        print(self.music_queue)
         voice_channel = self.music_queue[0][1]
         self.music_queue.pop(0)
         
-    
         # Connect to voice channel if not already connected
         if self.vc is None or not self.vc.is_connected():
             try:
@@ -129,59 +136,67 @@ class music_cog(commands.Cog):
             await ctx.send(random_message)
             return
         query = " ".join(args)
-
-        #validate input
-        if not query:
-            await ctx.send("Please enter a search term.")
-            await ctx.message.add_reaction("❌")
-            return
-        
         voice_channel = ctx.author.voice.channel
         if voice_channel is None:
-            await ctx.send("You are not connected to a voice channel.")
-            await ctx.message.add_reaction("❌")
-            return
-
-        # Check if the query is a url
-        if "youtube.com" in query or "youtu.be" in query:
-            try:
-                # Download the song from the url
-                with YoutubeDL(self.YDL_OPTIONS) as ydl:
-                    info = ydl.extract_info(query, download=False)
-                song = {'source': info['formats'][0]['url'], 'title': info['title']}
-                
-            except Exception as e:
-                await ctx.send(f"An error occurred while downloading the song: {e}")
-                print(f"An error occurred while downloading the song: {e}")
+                await ctx.send("You are not connected to a voice channel.")
                 await ctx.message.add_reaction("❌")
                 return
-        else:
-            # search for the song
+
+        if not query:
+            await ctx.send("Please enter a search query.")
+            await ctx.message.add_reaction("❌")
+            return
+        if self.vc is None or not self.vc.is_connected():
             try:
-                song = self.search_yt(query)
+                await voice_channel.connect()
+                self.vc = ctx.voice_client
+            except Exception as e:
+                pass
+        else:
+            await self.vc.move_to(voice_channel)
+
+        if not query.startswith("http"):
+        # If the query is not a URL, search YouTube for the query
+            try:
+                info = self.search_yt(query)
             except Exception as e:
                 await ctx.send(f"An error occurred while searching for the song: {e}")
                 print(f"An error occurred while searching for the song: {e}")
-                await ctx.message.add_reaction("❌")
                 return
-        if type(song) == type(True):
-            await ctx.send("Could not download the song. Incorrect format. Try another keyword or link. This can happen if you try to play a playlist, a livestream, an age-restricted video, or an unavailable video.")
-            await ctx.message.add_reaction("❌")
-            return
+        
+            if not info:
+                await ctx.send(f"No search results found for '{query}'")
+                return
         else:
-            await ctx.send("Adding song to queue: " + song['title'])
-            await ctx.message.add_reaction("✅")
-            self.music_queue.append([song, voice_channel])
-            if self.is_paused:
-                self.is_paused = False
-                self.vc.resume()
-            if not self.is_playing:
+            # If the query is a URL, extract the song info
+            with YoutubeDL(self.YDL_OPTIONS) as ydl:
                 try:
-                    await self.play_music(ctx)
+                    info = ydl.extract_info(query, download=False)
                 except Exception as e:
-                    await ctx.send(f"An error occurred while playing the song: {e}")
-                    print(f"An error occurred while playing the song: {e}")
-                    self.reset()
+                    await ctx.send(f"An error occurred while extracting information from the URL: {e}")
+                    print(f"An error occurred while extracting information from the URL: {e}")
+                    return
+
+            if 'entries' in info:
+                # If the URL is a playlist, add all songs in the playlist to the queue
+                for entry in info['entries']:
+                    self.music_queue.append([{'source': entry['formats'][0]['url'], 'title': entry['title']}, voice_channel])
+                await ctx.send(f"{len(info['entries'])} songs added to queue!")
+                if not self.is_playing:
+                    await self.play_music(ctx)
+                return
+            else:
+                # If the URL is a single song, add it to the queue
+                info = {'source': info['formats'][0]['url'], 'title': info['title']}
+
+        self.music_queue.append([info, voice_channel])
+        await ctx.send(f"Added '{info['title']}' to the queue!")
+        await ctx.message.add_reaction("✅")
+        
+        if not self.is_playing:
+            await self.play_music(ctx)
+        
+
 
     @commands.command(name="pause", help="Pauses the current song being played")
     async def pause(self, ctx, *args):
@@ -355,8 +370,11 @@ class music_cog(commands.Cog):
     def reset(self):
         print("Resetting variables")
         # disconnect
-        self.vc.stop()
-        self.vc.disconnect()
+        try: 
+            self.vc.stop()
+            self.vc.disconnect()
+        except:
+            pass
         # reset the variables
         self.is_playing = False
         self.is_paused = False
